@@ -9,7 +9,6 @@ import cors from "cors";
 dotenv.config({
     path: "./config.env",
 });
-
 mongoose
     .connect(process.env.MONGO_URI, {
         dbName: "IPDuser",
@@ -49,6 +48,21 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Middleware to authenticate user
+const authenticateUser = (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.userId = decoded.id;
+        next();
+    } catch (error) {
+        return res.status(401).json({ success: false, message: "Invalid token" });
+    }
+};
 
 // Signup Route
 app.post("/users/signup", async (req, res) => {
@@ -146,6 +160,19 @@ app.post("/users/login", async (req, res) => {
 app.post("/users/logout", (req, res) => {
     res.cookie("token", "", { maxAge: 0 });
     res.status(200).json({ success: true, message: "Logged out successfully" });
+});
+
+// Get User Details Route
+app.get("/users/me", authenticateUser, async (req, res) => {
+    try {
+        const user = await userModel.findById(req.userId).select("-password");
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
 });
 
 app.listen(process.env.PORT, () => {
