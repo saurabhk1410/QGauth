@@ -43,7 +43,7 @@ const userModel = mongoose.model("appUser", userSchema);
 const app = express();
 
 app.use(cors({ 
-    origin:[process.env.FRONTEND_URL,"http://localhost:5173"], // Allow frontend URL
+    origin:process.env.FRONTEND_URL, // Allow frontend URL
     credentials: true, // Allow cookies
     methods:["GET","POST","PUT","DELETE"]
 }));
@@ -159,14 +159,14 @@ app.post("/users/login", async (req, res) => {
 });
 
 // Logout Route
-app.post("/users/logout", authenticateUser, (req, res) => {
+app.post("/users/logout",authenticateUser, (req, res) => {
     res.cookie("token", "", { expires: new Date(0), httpOnly: true, secure: true, sameSite: "Strict" });
     res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
 
 // Get User Details Route
-app.get("/users/me", authenticateUser, async (req, res) => {
+app.get("/users/me",authenticateUser, async (req, res) => {
     try {
         const user = await userModel.findById(req.userId).select("-password");
         if (!user) {
